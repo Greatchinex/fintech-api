@@ -5,6 +5,7 @@ import { User } from "../../entity/User";
 
 //=========== Services ==========//
 import { hashPass, verifyPass, jwtToken } from "../../services/jwt_pass";
+import { resolveAcctNumber } from "../../services/paystack/apis";
 
 export default {
   createUser: async (req: Request, res: Response) => {
@@ -34,9 +35,9 @@ export default {
       const token = jwtToken(savedUser.id, true);
 
       return res.status(201).json({
-        message: "Account created successfully",
-        token,
-        success: true
+        message: token,
+        success: true,
+        user: savedUser
       });
     } catch (err) {
       return res.status(500).json({ msg: err.message });
@@ -87,6 +88,36 @@ export default {
         message: "User found",
         success: true,
         user
+      });
+    } catch (err) {
+      return res.status(500).json({ msg: err.message });
+    }
+  },
+
+  updateAccount: async (req: Request, res: Response) => {
+    try {
+      const { account_number, bank_code } = req.body;
+      const response = await resolveAcctNumber(account_number, bank_code);
+
+      if (!response.status) {
+        return res.json({
+          msg: "There was an issue verifying your account",
+          success: false
+        });
+      }
+
+      await User.update(
+        { id: req.user!.userId },
+        {
+          account_number,
+          bank_code,
+          acct_num_verified: true
+        }
+      );
+
+      return res.json({
+        message: "Account updated successfully",
+        success: true
       });
     } catch (err) {
       return res.status(500).json({ msg: err.message });

@@ -27,4 +27,16 @@ const loginValidation = [
     .withMessage("Password is required")
 ];
 
-export { signupValidation, loginValidation };
+// Update user account number
+const updateAcctValidation = [
+  body("account_number")
+    .trim()
+    .exists({ checkFalsy: true })
+    .withMessage("Please enter an account number"),
+  body("bank_code")
+    .trim()
+    .exists({ checkFalsy: true })
+    .withMessage("Bank code should have a value")
+];
+
+export { signupValidation, loginValidation, updateAcctValidation };

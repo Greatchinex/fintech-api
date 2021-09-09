@@ -1,4 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, BaseEntity } from "typeorm";
+import { Exclude, classToPlain } from "class-transformer";
 import { v4 as uuidv4 } from "uuid";
 
 @Entity()
@@ -15,9 +16,7 @@ export class User extends BaseEntity {
   @Column({ type: "text", unique: true })
   email: string;
 
-  // @Column({ type: "text", select: false })
-  // password: string;
-
+  @Exclude({ toPlainOnly: true })
   @Column({ type: "text" })
   password: string;
 
@@ -33,8 +32,7 @@ export class User extends BaseEntity {
   @Column({ type: "int", default: 0 })
   wallet_balance: number;
 
-  // public async verifyPassword(password: string): Promise<boolean> {
-  //   let cp = await argon2.verify(this.password, password);
-  //   return cp;
-  // }
+  toJSON() {
+    return classToPlain(this);
+  }
 }
