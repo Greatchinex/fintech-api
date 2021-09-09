@@ -6,7 +6,9 @@ config();
 
 // Generate jwt
 export const jwtToken = (userId: string | number, isUser: boolean) => {
-  return jwt.sign({ userId, isUser }, process.env.EMAIL_SECRET!);
+  return jwt.sign({ userId, isUser }, process.env.JWT_SECRET!, {
+    expiresIn: "7d"
+  });
 };
 
 // Hash Password

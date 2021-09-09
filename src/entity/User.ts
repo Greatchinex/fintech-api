@@ -15,7 +15,10 @@ export class User extends BaseEntity {
   @Column({ type: "text", unique: true })
   email: string;
 
-  @Column({ type: "text", select: false })
+  // @Column({ type: "text", select: false })
+  // password: string;
+
+  @Column({ type: "text" })
   password: string;
 
   @Column({ type: "text", nullable: true })
@@ -29,4 +32,9 @@ export class User extends BaseEntity {
 
   @Column({ type: "int", default: 0 })
   wallet_balance: number;
+
+  // public async verifyPassword(password: string): Promise<boolean> {
+  //   let cp = await argon2.verify(this.password, password);
+  //   return cp;
+  // }
 }

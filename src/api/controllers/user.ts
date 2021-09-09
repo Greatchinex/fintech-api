@@ -14,9 +14,6 @@ export default {
 
       const userCheck = await User.findOne({ where: { email: lowercase } });
 
-      console.log("==============");
-      console.log(userCheck);
-
       if (userCheck) {
         return res.json({
           message: "A user with the email you entered already exist",
@@ -34,15 +31,12 @@ export default {
 
       const savedUser = await newUser.save();
 
-      console.log("==============");
-      console.log(savedUser);
-
       const token = jwtToken(savedUser.id, true);
 
       return res.status(201).json({
-        message: token,
-        success: true,
-        user: savedUser
+        message: "Account created successfully",
+        token,
+        success: true
       });
     } catch (err) {
       return res.status(500).json({ msg: err.message });
@@ -56,11 +50,8 @@ export default {
 
       const userCheck = await User.findOne({ where: { email: lowercase } });
 
-      console.log("==============");
-      console.log(userCheck);
-
       if (!userCheck) {
-        return res.json({
+        return res.status(400).json({
           message: "Incorrect login details",
           success: false
         });
@@ -70,7 +61,7 @@ export default {
       const isMatch = await verifyPass(userCheck.password, password);
 
       if (!isMatch) {
-        return res.json({
+        return res.status(400).json({
           msg: "Incorrect login details",
           success: false
         });
@@ -82,6 +73,20 @@ export default {
         message: token,
         value: true,
         user: userCheck
+      });
+    } catch (err) {
+      return res.status(500).json({ msg: err.message });
+    }
+  },
+
+  userProfile: async (req: Request, res: Response) => {
+    try {
+      const user = await User.findOneOrFail({ id: req.user!.userId });
+
+      return res.json({
+        message: "User found",
+        success: true,
+        user
       });
     } catch (err) {
       return res.status(500).json({ msg: err.message });
