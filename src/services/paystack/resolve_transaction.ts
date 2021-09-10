@@ -77,3 +77,47 @@ export const successCharge = async (data: any) => {
     throw err;
   }
 };
+
+// Update user details after they funded their account, This will be called if a user
+// funded their account with an already saved card
+export const successCardCharge = async (data: any, user_id: number) => {
+  try {
+    if (data.data.status === "success") {
+      const { reference, amount, transaction_date, currency, authorization } =
+        data.data;
+
+      // get amount back in naira
+      const original_amount = amount / 100;
+
+      // Update User
+      const updatedUser = await getConnection()
+        .createQueryBuilder()
+        .update(User)
+        .set({ wallet_balance: () => "wallet_balance + :original_amount" })
+        .setParameter("original_amount", original_amount)
+        .where("id = :id", { id: user_id })
+        .returning("*")
+        .updateEntity(true)
+        .execute();
+
+      // Save Funds History
+      const newFundHistory = FundHistory.create({
+        reference,
+        amount_funded: original_amount,
+        transaction_date,
+        currency,
+        channel: authorization.channel,
+        card_type: authorization.card_type.trim(),
+        user: updatedUser.raw[0]
+      });
+
+      await newFundHistory.save();
+
+      return true;
+    }
+
+    return false;
+  } catch (err) {
+    return false;
+  }
+};

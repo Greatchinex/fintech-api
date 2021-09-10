@@ -2,7 +2,10 @@ import express from "express";
 
 import transactions from "../controllers/transactions";
 
-import { initiatePayValidation } from "../../schema/transaction_validation";
+import {
+  initiatePayValidation,
+  savedCardValidation
+} from "../../schema/transaction_validation";
 import { validateInput } from "../../middleware/validation_err";
 import { auth } from "../../middleware/auth";
 
@@ -14,6 +17,15 @@ router.post(
   initiatePayValidation,
   validateInput,
   transactions.initatePay
+);
+router.get("/my_saved_cards", auth, transactions.savedCards);
+router.get("/fund_history", auth, transactions.userFundHistory);
+router.post(
+  "/pay_with_saved_cards",
+  auth,
+  savedCardValidation,
+  validateInput,
+  transactions.reccuringFunding
 );
 
 export { router as transactionsRouter };

@@ -73,3 +73,27 @@ export const initiateUserPay = async (body: any) => {
     throw err;
   }
 };
+
+// Recurring Charges. When a user has previously funded account once and then we use that card for
+// Subsequent charges
+export const recurringCharge = async (body: any) => {
+  try {
+    const url = `${base_url}/transaction/charge_authorization`;
+
+    const response = await fetch(url, {
+      method: "POST",
+      body: JSON.stringify(body),
+      headers: {
+        authorization: `Bearer ${process.env.PAY_STACK_SECRET_KEY!}`,
+        "Content-Type": "application/json",
+        "cache-control": "no-cache"
+      }
+    });
+
+    const data = await response.json();
+
+    return data;
+  } catch (err) {
+    throw err;
+  }
+};
