@@ -8,6 +8,7 @@ import {
 import { Exclude, classToPlain } from "class-transformer";
 import { v4 as uuidv4 } from "uuid";
 import { Card } from "./Cards";
+import { FundHistory } from "./FundHistory";
 
 @Entity()
 export class User extends BaseEntity {
@@ -41,6 +42,9 @@ export class User extends BaseEntity {
 
   @OneToMany(() => Card, (cards) => cards.user)
   cards: Array<Card>;
+
+  @OneToMany(() => FundHistory, (funds_history) => funds_history.user)
+  funds_history: Array<FundHistory>;
 
   toJSON() {
     return classToPlain(this);

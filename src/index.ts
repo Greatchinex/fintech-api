@@ -14,18 +14,6 @@ app.use(express.json());
 app.use(cors());
 routes(app);
 
-const id = "3";
-
-console.log(typeof id);
-
-console.log(id);
-
-const intId = parseFloat(id);
-
-console.log(intId);
-
-console.log(typeof intId);
-
 createConnection()
   .then(() => {
     app.listen(port, () => {
