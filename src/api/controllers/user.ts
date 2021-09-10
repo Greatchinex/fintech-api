@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { getConnection } from "typeorm";
 
 //=========== Models/Schema ==========//
 import { User } from "../../entity/User";
@@ -101,7 +102,7 @@ export default {
 
       if (!response.status) {
         return res.json({
-          msg: "There was an issue verifying your account",
+          message: "There was an issue verifying your account",
           success: false
         });
       }
@@ -118,6 +119,30 @@ export default {
       return res.json({
         message: "Account updated successfully",
         success: true
+      });
+    } catch (err) {
+      return res.status(500).json({ msg: err.message });
+    }
+  },
+
+  test: async (req: Request, res: Response) => {
+    try {
+      const updatedUser = await getConnection()
+        .createQueryBuilder()
+        .update(User)
+        .set({ full_name: "Bolu Abiola" })
+        .where("id = :id", { id: req.body.id })
+        .returning("*")
+        .updateEntity(true)
+        .execute();
+
+      console.log(updatedUser.raw[0]);
+      const update = updatedUser.raw[0];
+
+      return res.json({
+        message: "Account updated successfully",
+        success: true,
+        user: update
       });
     } catch (err) {
       return res.status(500).json({ msg: err.message });

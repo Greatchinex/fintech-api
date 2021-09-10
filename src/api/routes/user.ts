@@ -22,5 +22,6 @@ router.patch(
   validateInput,
   user.updateAccount
 );
+router.post("/test", user.test);
 
 export { router as userRouter };

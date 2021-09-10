@@ -1,6 +1,13 @@
-import { Entity, PrimaryGeneratedColumn, Column, BaseEntity } from "typeorm";
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  BaseEntity,
+  OneToMany
+} from "typeorm";
 import { Exclude, classToPlain } from "class-transformer";
 import { v4 as uuidv4 } from "uuid";
+import { Card } from "./Cards";
 
 @Entity()
 export class User extends BaseEntity {
@@ -31,6 +38,9 @@ export class User extends BaseEntity {
 
   @Column({ type: "int", default: 0 })
   wallet_balance: number;
+
+  @OneToMany(() => Card, (cards) => cards.user)
+  cards: Array<Card>;
 
   toJSON() {
     return classToPlain(this);

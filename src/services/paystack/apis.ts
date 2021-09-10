@@ -50,3 +50,26 @@ export const listBanks = async () => {
     throw err;
   }
 };
+
+// Initiate a payment
+export const initiateUserPay = async (body: any) => {
+  try {
+    const url = `${base_url}/transaction/initialize`;
+
+    const response = await fetch(url, {
+      method: "POST",
+      body: JSON.stringify(body),
+      headers: {
+        authorization: `Bearer ${process.env.PAY_STACK_SECRET_KEY!}`,
+        "Content-Type": "application/json",
+        "cache-control": "no-cache"
+      }
+    });
+
+    const data = await response.json();
+
+    return data;
+  } catch (err) {
+    throw err;
+  }
+};

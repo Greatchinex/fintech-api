@@ -1,0 +1,66 @@
+import { getConnection } from "typeorm";
+
+//========= Models ==========//
+import { User } from "../../entity/User";
+import { Card } from "../../entity/Cards";
+
+// Update user details after they funded their account for a first time
+// payment(Payment without saved card) or other means of payment (Like transfer)
+export const successCharge = async (data: any) => {
+  try {
+    if (data.data.status === "success") {
+      const {
+        // reference,
+        amount,
+        // paid_at,
+        // currency,
+        metadata: {
+          id
+          //   paid_with_saved_card,
+        },
+        authorization
+      } = data.data;
+
+      // get amount back in naira
+      const original_amount = amount / 100;
+      // Parse user id back to integer as paystack changes them to strings
+      const intId = parseFloat(id);
+
+      // Update User
+      const updatedUser = await getConnection()
+        .createQueryBuilder()
+        .update(User)
+        .set({ wallet_balance: () => "wallet_balance + :original_amount" })
+        .setParameter("original_amount", original_amount)
+        .where("id = :id", { id: intId })
+        .returning("*")
+        .updateEntity(true)
+        .execute();
+
+      // Is user paid with card save card
+      if (authorization.reusable) {
+        const card = {
+          authorization_code: authorization.authorization_code,
+          card_type: authorization.card_type.trim(),
+          last4: authorization.last4.trim(),
+          exp_month: authorization.exp_month,
+          exp_year: authorization.exp_year,
+          bin: authorization.bin,
+          bank: authorization.bank.trim(),
+          channel: authorization.channel,
+          signature: authorization.signature,
+          reusable: authorization.reusable,
+          country_code: authorization.country_code,
+          account_name: authorization.account_name,
+          user: updatedUser.raw[0]
+        };
+
+        const newCard = Card.create(card);
+
+        await newCard.save();
+      }
+    }
+  } catch (err) {
+    throw err;
+  }
+};
