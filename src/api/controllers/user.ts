@@ -1,8 +1,9 @@
 import { Request, Response } from "express";
-import { getConnection } from "typeorm";
+import { getConnection, createQueryBuilder } from "typeorm";
 
 //=========== Models/Schema ==========//
 import { User } from "../../entity/User";
+import { UserBeneficiaries } from "../../entity/Beneficiaries";
 
 //=========== Services ==========//
 import { hashPass, verifyPass, jwtToken } from "../../services/jwt_pass";
@@ -125,6 +126,79 @@ export default {
     }
   },
 
+  addBeneficiary: async (req: Request, res: Response) => {
+    try {
+      const { beneficiary_id } = req.body;
+
+      if (!beneficiary_id) {
+        return res.json({
+          message: "Please pass the ID of the beneficiary",
+          success: false
+        });
+      }
+
+      const findBeneficiary = await createQueryBuilder("UserBeneficiaries")
+        .leftJoinAndSelect("UserBeneficiaries.beneficiary_id", "beneficiary_id")
+        .where(
+          "UserBeneficiaries.beneficiary_id = :beneficiary_id and UserBeneficiaries.user_id = :user_id",
+          { beneficiary_id, user_id: req.user!.userId }
+        )
+        .getOne();
+
+      if (findBeneficiary) {
+        return res.json({
+          message: "This user is already a beneficiary",
+          success: false
+        });
+      }
+
+      const beneficiaryExist = await User.findOne({
+        where: { id: beneficiary_id }
+      });
+
+      if (!beneficiaryExist) {
+        return res.json({
+          message: "Beneficiary you are trying to add was not found",
+          success: false
+        });
+      }
+
+      const newBeneficiary = UserBeneficiaries.create({
+        user_id: req.user!.userId,
+        beneficiary_id
+      });
+
+      const savedBeneficiary = await newBeneficiary.save();
+
+      return res.json({
+        message: "Beneficiary added successfully",
+        success: true,
+        beneficiary: savedBeneficiary
+      });
+    } catch (err) {
+      return res.status(500).json({ msg: err.message });
+    }
+  },
+
+  myBeneficiaries: async (req: Request, res: Response) => {
+    try {
+      const beneficiaries = await createQueryBuilder("UserBeneficiaries")
+        .leftJoinAndSelect("UserBeneficiaries.beneficiary_id", "beneficiary_id")
+        .where("UserBeneficiaries.user_id = :user_id", {
+          user_id: req.user!.userId
+        })
+        .getMany();
+
+      return res.json({
+        message: "Data found",
+        success: true,
+        beneficiaries: beneficiaries
+      });
+    } catch (err) {
+      return res.status(500).json({ msg: err.message });
+    }
+  },
+
   test: async (req: Request, res: Response) => {
     try {
       const updatedUser = await getConnection()
@@ -138,6 +212,16 @@ export default {
 
       console.log(updatedUser.raw[0]);
       const update = updatedUser.raw[0];
+
+      //   const users = await createQueryBuilder("UserBeneficiaries")
+      //   .leftJoinAndSelect("UserBeneficiaries.beneficiary_id", "beneficiary_id")
+      //   .where("UserBeneficiaries.user_id = :user_id", {
+      //     beneficiary_id,
+      //     user_id: req.user!.userId
+      //   })
+      //   .getMany();
+
+      // console.log(users);
 
       return res.json({
         message: "Account updated successfully",

@@ -22,6 +22,8 @@ router.patch(
   validateInput,
   user.updateAccount
 );
+router.post("/add_beneficiary", auth, user.addBeneficiary);
+router.get("/my_beneficiaries", auth, user.myBeneficiaries);
 router.post("/test", user.test);
 
 export { router as userRouter };
