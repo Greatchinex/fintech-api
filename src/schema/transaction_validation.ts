@@ -27,4 +27,15 @@ const savedCardValidation = [
     .withMessage("Last four is required")
 ];
 
-export { initiatePayValidation, savedCardValidation };
+const transferFundsValidation = [
+  body("amount_sent")
+    .exists({ checkFalsy: true })
+    .isNumeric()
+    .withMessage("Amount is required"),
+  body("user_id")
+    .exists({ checkFalsy: true })
+    .isNumeric()
+    .withMessage("UserId is required")
+];
+
+export { initiatePayValidation, savedCardValidation, transferFundsValidation };

@@ -10,6 +10,7 @@ import { v4 as uuidv4 } from "uuid";
 import { Card } from "./Cards";
 import { FundHistory } from "./FundHistory";
 import { UserBeneficiaries } from "./Beneficiaries";
+import { UserTransfers } from "./UserTransfers";
 
 @Entity()
 export class User extends BaseEntity {
@@ -52,6 +53,15 @@ export class User extends BaseEntity {
     (beneficiaries) => beneficiaries.beneficiary_id
   )
   beneficiaries: Array<UserBeneficiaries>;
+
+  @OneToMany(() => UserTransfers, (sent_transfers) => sent_transfers.sender)
+  sent_transfers: Array<UserTransfers>;
+
+  @OneToMany(
+    () => UserTransfers,
+    (received_transfers) => received_transfers.receiver
+  )
+  received_transfers: Array<UserTransfers>;
 
   toJSON() {
     return classToPlain(this);

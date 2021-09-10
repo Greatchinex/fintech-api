@@ -80,7 +80,10 @@ export const successCharge = async (data: any) => {
 
 // Update user details after they funded their account, This will be called if a user
 // funded their account with an already saved card
-export const successCardCharge = async (data: any, user_id: number) => {
+export const successCardCharge = async (
+  data: any,
+  user_id: number
+): Promise<boolean> => {
   try {
     if (data.data.status === "success") {
       const { reference, amount, transaction_date, currency, authorization } =

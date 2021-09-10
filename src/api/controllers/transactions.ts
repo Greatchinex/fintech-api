@@ -1,9 +1,11 @@
 import { Request, Response } from "express";
+import { getConnection, createQueryBuilder } from "typeorm";
 
 //=========== Models/Schema ==========//
 import { User } from "../../entity/User";
 import { Card } from "../../entity/Cards";
 import { FundHistory } from "../../entity/FundHistory";
+import { UserTransfers } from "../../entity/UserTransfers";
 
 //=========== Services ==========//
 import { verifyPass } from "../../services/jwt_pass";
@@ -150,7 +152,10 @@ export default {
         });
       }
 
-      const response = await successCardCharge(data, find_card.user.id);
+      const response: boolean = await successCardCharge(
+        data,
+        find_card.user.id
+      );
 
       if (response) {
         return res.json({
@@ -163,6 +168,130 @@ export default {
           success: false
         });
       }
+    } catch (err) {
+      return res.status(500).json({ msg: err.message });
+    }
+  },
+
+  transferFunds: async (req: Request, res: Response) => {
+    try {
+      const { amount_sent, user_id } = req.body;
+
+      // Get user sending cash
+      const user = await User.findOneOrFail({ id: req.user!.userId });
+
+      if (!user) {
+        return res.json({
+          message: "Cannot find user trying to initate this transaction",
+          success: false
+        });
+      }
+
+      if (typeof amount_sent !== "number") {
+        return res.json({
+          message: "amount should be an integer value",
+          success: false
+        });
+      }
+
+      // Check for sufficient balance
+      if (amount_sent > user.wallet_balance) {
+        return res.json({
+          message: "Insufficient funds for this transfer",
+          success: false
+        });
+      }
+
+      // Remove money and add to receiver account(Transactions)
+      // Create Transaction with query runner for Transactions
+      const connection = getConnection();
+      const queryRunner = connection.createQueryRunner();
+
+      await queryRunner.connect();
+      await queryRunner.startTransaction();
+
+      try {
+        const updatedSender = await queryRunner.manager
+          .createQueryBuilder()
+          .update(User)
+          .set({ wallet_balance: () => "wallet_balance - :amount_sent" })
+          .setParameter("amount_sent", amount_sent)
+          .where("id = :id", { id: user.id })
+          .returning("*")
+          .updateEntity(true)
+          .execute();
+
+        const updatedReceiver = await queryRunner.manager
+          .createQueryBuilder()
+          .update(User)
+          .set({ wallet_balance: () => "wallet_balance + :amount_sent" })
+          .setParameter("amount_sent", amount_sent)
+          .where("id = :id", { id: user_id })
+          .returning("*")
+          .updateEntity(true)
+          .execute();
+
+        // Create user transfers
+        await queryRunner.manager.save(UserTransfers, {
+          amount_sent,
+          sender: updatedSender.raw[0],
+          receiver: updatedReceiver.raw[0]
+        });
+
+        await queryRunner.commitTransaction();
+
+        return res.json({
+          message: "Transfer successful",
+          success: true
+        });
+      } catch (err) {
+        await queryRunner.rollbackTransaction();
+
+        return res.json({
+          message: "There was an issue processing payment",
+          success: false
+        });
+      } finally {
+        await queryRunner.release();
+      }
+    } catch (err) {
+      return res.status(500).json({ msg: err.message });
+    }
+  },
+
+  sentFunds: async (req: Request, res: Response) => {
+    try {
+      const sent_funds = await createQueryBuilder("UserTransfers")
+        .leftJoinAndSelect("UserTransfers.receiver", "receiver")
+        .where("UserTransfers.sender = :sender", {
+          sender: req.user!.userId
+        })
+        .getMany();
+
+      return res.json({
+        message: "Data found",
+        success: true,
+        funds_sent_to: sent_funds
+      });
+    } catch (err) {
+      return res.status(500).json({ msg: err.message });
+    }
+  },
+
+  receivedFunds: async (req: Request, res: Response) => {
+    try {
+      const received_funds = await createQueryBuilder("UserTransfers")
+        .leftJoinAndSelect("UserTransfers.sender", "sender")
+        .where("UserTransfers.receiver = :receiver", {
+          receiver: req.user!.userId
+        })
+        .getMany();
+
+      return res.json({
+        message: "Data found",
+        success: true,
+        funds_sent_by: received_funds
+      });
     } catch (err) {
       return res.status(500).json({ msg: err.message });
     }

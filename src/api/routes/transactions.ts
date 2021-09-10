@@ -4,7 +4,8 @@ import transactions from "../controllers/transactions";
 
 import {
   initiatePayValidation,
-  savedCardValidation
+  savedCardValidation,
+  transferFundsValidation
 } from "../../schema/transaction_validation";
 import { validateInput } from "../../middleware/validation_err";
 import { auth } from "../../middleware/auth";
@@ -27,5 +28,14 @@ router.post(
   validateInput,
   transactions.reccuringFunding
 );
+router.post(
+  "/transfer_funds",
+  auth,
+  transferFundsValidation,
+  validateInput,
+  transactions.transferFunds
+);
+router.get("/my_sent_funds", auth, transactions.sentFunds);
+router.get("/my_received_funds", auth, transactions.receivedFunds);
 
 export { router as transactionsRouter };
