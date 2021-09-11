@@ -6,11 +6,13 @@ import { User } from "../../entity/User";
 import { Card } from "../../entity/Cards";
 import { FundHistory } from "../../entity/FundHistory";
 import { UserTransfers } from "../../entity/UserTransfers";
+import { UserWithdrawals } from "../../entity/UserWithdrawals";
 
 //=========== Services ==========//
 import { verifyPass } from "../../services/jwt_pass";
 import { initiateUserPay, recurringCharge } from "../../services/paystack/apis";
 import { successCardCharge } from "../../services/paystack/resolve_transaction";
+import { dateUtc, stringGen } from "../../services/helpers";
 
 export default {
   initatePay: async (req: Request, res: Response) => {
@@ -292,6 +294,120 @@ export default {
         success: true,
         funds_sent_by: received_funds
       });
+    } catch (err) {
+      return res.status(500).json({ msg: err.message });
+    }
+  },
+
+  withdrawFunds: async (req: Request, res: Response) => {
+    try {
+      const { amount } = req.body;
+
+      // Get user sending cash
+      const user = await User.findOneOrFail({ id: req.user!.userId });
+
+      if (!user) {
+        return res.json({
+          message: "Cannot find user trying to initate this transaction",
+          success: false
+        });
+      }
+
+      if (typeof amount !== "number" || !amount) {
+        return res.json({
+          message:
+            "Please pass amount to be withdrawn and amount should be an integer value",
+          success: false
+        });
+      }
+
+      if (!user.acct_num_verified) {
+        return res.json({
+          message: "Please add an account number before you can withdraw funds",
+          success: false
+        });
+      }
+
+      // Check for sufficient balance
+      if (amount > user.wallet_balance) {
+        return res.json({
+          message: "Insufficient funds for this transfer",
+          success: false
+        });
+      }
+
+      // @NOTE: Since the paystack account used here is a starter business(Not a registered business
+      // in the country) We cannot call Paystack Apis to initiate transfers as those endpoints are
+      // Only open to a registered business...So instead we just remove the funds from the user
+      // account balance in DB and create a table for withdrawal history Which will ideally be
+      // done after confirming a transfer from paystack gateway
+      const connection = getConnection();
+      const queryRunner = connection.createQueryRunner();
+
+      await queryRunner.connect();
+      await queryRunner.startTransaction();
+
+      try {
+        const updatedSender = await queryRunner.manager
+          .createQueryBuilder()
+          .update(User)
+          .set({ wallet_balance: () => "wallet_balance - :amount" })
+          .setParameter("amount", amount)
+          .where("id = :id", { id: user.id })
+          .returning("*")
+          .updateEntity(true)
+          .execute();
+
+        const transaction_date = new Date(dateUtc());
+        const reference = stringGen();
+
+        await queryRunner.manager.save(UserWithdrawals, {
+          amount_withdrawn: amount,
+          currency: "NGN",
+          transfer_status: "success",
+          transaction_date: transaction_date,
+          reference,
+          user: updatedSender.raw[0]
+        });
+
+        await queryRunner.commitTransaction();
+
+        return res.json({
+          message: "Transaction successful",
+          success: true
+        });
+      } catch (err) {
+        console.log("Catch was ran");
+        await queryRunner.rollbackTransaction();
+
+        return res.json({
+          message: "There was an issue processing transfer",
+          success: false
+        });
+      } finally {
+        await queryRunner.release();
+      }
+    } catch (err) {
+      return res.status(500).json({ msg: err.message });
+    }
+  },
+
+  myWithdrawals: async (req: Request, res: Response) => {
+    try {
+      try {
+        const withdrawals = await UserWithdrawals.find({
+          where: { user: req.user!.userId },
+          relations: ["user"]
+        });
+
+        return res.json({
+          message: "Data found",
+          success: true,
+          withdrawal_history: withdrawals
+        });
+      } catch (err) {
+        return res.status(500).json({ msg: err.message });
+      }
     } catch (err) {
       return res.status(500).json({ msg: err.message });
     }

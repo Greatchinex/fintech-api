@@ -11,6 +11,7 @@ import { Card } from "./Cards";
 import { FundHistory } from "./FundHistory";
 import { UserBeneficiaries } from "./Beneficiaries";
 import { UserTransfers } from "./UserTransfers";
+import { UserWithdrawals } from "./UserWithdrawals";
 
 @Entity()
 export class User extends BaseEntity {
@@ -62,6 +63,9 @@ export class User extends BaseEntity {
     (received_transfers) => received_transfers.receiver
   )
   received_transfers: Array<UserTransfers>;
+
+  @OneToMany(() => UserWithdrawals, (withdrawals) => withdrawals.user)
+  withdrawals: Array<UserWithdrawals>;
 
   toJSON() {
     return classToPlain(this);

@@ -37,5 +37,7 @@ router.post(
 );
 router.get("/my_sent_funds", auth, transactions.sentFunds);
 router.get("/my_received_funds", auth, transactions.receivedFunds);
+router.post("/withdraw_funds", auth, transactions.withdrawFunds);
+router.get("/withdrawal_history", auth, transactions.myWithdrawals);
 
 export { router as transactionsRouter };
