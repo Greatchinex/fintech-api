@@ -69,4 +69,8 @@ There are a few Apis you can run to test key functionalities
 
 #### Potential Improvements
 
-Timestamps were not stored in some user tables..Tables should ideally have timestamp fields to query data in whatever order we want
+Timestamps were not stored in some tables..Tables should ideally have timestamp fields to query data in whatever order we want
+
+###### Unit tests
+
+At the point of writing this README unit test have not been added, Though i plan on adding them in the near future

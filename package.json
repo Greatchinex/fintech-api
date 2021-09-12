@@ -30,7 +30,12 @@
     "uuid": "^8.3.2"
   },
   "scripts": {
-    "start": "ts-node src/index.ts",
-    "dev": "NODE_ENV=development ts-node-dev --respawn src/index.ts"
+    "clean": "rm -rf build && mkdir build",
+    "dev": "NODE_ENV=development ts-node-dev --respawn src/index.ts",
+    "start": "yarn build && NODE_ENV=production nodemon build/index.js",
+    "build": "yarn clean && yarn build-server",
+    "build-server": "tsc",
+    "heroku-prebuild": "export YARN_PRODUCTION=false; export NODE_ENV=; YARN_PRODUCTION=false NODE_ENV=development yarn add --only=dev --dev",
+    "heroku-postbuild": "export YARN_PRODUCTION=true; export NODE_ENV=production;"
   }
 }
